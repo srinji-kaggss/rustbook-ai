@@ -122,7 +122,7 @@ struct Cell {
 
 /// Typed error system matching the gemini evaluation spec.
 #[derive(Debug, Clone, PartialEq, Eq)]
-#[expect(dead_code)]
+#[expect(dead_code, reason = "see surrounding context")]
 enum EvalError {
     SecuritySandboxBreach(String),
     CyclicDependencyDetected(NodeIx),
@@ -155,7 +155,7 @@ impl std::error::Error for EvalError {}
 
 /// User interaction profiles for adaptive UI behavior.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-#[expect(dead_code)]
+#[expect(dead_code, reason = "see surrounding context")]
 enum UserProfile {
     DeepFocusArchitect,
     AdhdExplorer,
@@ -640,7 +640,7 @@ impl CellGraph {
         self.recompute_order();
     }
 
-    #[expect(dead_code)]
+    #[expect(dead_code, reason = "see surrounding context")]
     fn mark_stale_cascade(&mut self, node: NodeIx) {
         let mut queue: VecDeque<NodeIx> = VecDeque::new();
         // Start from the dependents of the edited node, not the node itself.
@@ -675,7 +675,7 @@ impl CellGraph {
     }
 
     /// Check if the graph contains a cycle. Returns the node involved if found.
-    #[expect(dead_code)]
+    #[expect(dead_code, reason = "see surrounding context")]
     fn has_cycle(&self) -> Option<NodeIx> {
         match toposort(&self.graph, None) {
             Ok(_) => None,
@@ -768,12 +768,12 @@ impl CellGraph {
 
     /// Remove a symbol from the Rhai scope when its defining cell is deleted or changed.
     /// Callers must pass the mutable scope reference.
-    #[expect(dead_code)]
+    #[expect(dead_code, reason = "see surrounding context")]
     fn remove_symbols_from_scope(&self, symbols: &HashSet<String>, scope: &mut Scope<'static>) {
         for sym in symbols {
             // Rhai Scope doesn't have a remove method, but we can check if it exists.
             // The scope will be overwritten on next execution of the defining cell.
-            let _ = scope.get_value::<Dynamic>(sym);
+            drop(scope.get_value::<Dynamic>(sym));
         }
     }
 
@@ -883,7 +883,7 @@ impl CellGraph {
 // ReactiveNotebookEngine — unified API matching gemini spec
 // ═════════════════════════════════════════════════════════════════════════════
 
-#[expect(dead_code)]
+#[expect(dead_code, reason = "see surrounding context")]
 struct ReactiveNotebookEngine {
     graph: CellGraph,
     sandbox: SecuritySandbox,
@@ -2083,7 +2083,7 @@ impl App {
                     );
                     // Write response file.
                     if let Ok(json) = serde_json::to_string_pretty(&response) {
-                        let _ = fs::write(&self.ai_resp_path, &json);
+                        drop(fs::write(&self.ai_resp_path, &json));
                     }
                 }
                 Err(e) => {
@@ -2172,10 +2172,10 @@ impl App {
                     response.message.as_deref().unwrap_or("")
                 );
                 if let Ok(json) = serde_json::to_string_pretty(&response) {
-                    let _ = fs::write(&self.ai_resp_path, &json);
+                    drop(fs::write(&self.ai_resp_path, &json));
                 }
                 // Clear the command file.
-                let _ = fs::write(&self.ai_cmd_path, "");
+                drop(fs::write(&self.ai_cmd_path, ""));
             }
         }
     }
@@ -3228,10 +3228,10 @@ fn render_status(f: &mut Frame, app: &App, area: Rect) {
 // MatrixEvalSuite — structured test runner matching gemini spec
 // ═════════════════════════════════════════════════════════════════════════════
 
-#[expect(dead_code)]
+#[expect(dead_code, reason = "see surrounding context")]
 struct MatrixEvalSuite;
 
-#[expect(dead_code)]
+#[expect(dead_code, reason = "see surrounding context")]
 impl MatrixEvalSuite {
     /// Run the full evaluation matrix against a ReactiveNotebookEngine.
     fn run_all(
