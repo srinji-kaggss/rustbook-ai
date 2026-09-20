@@ -122,7 +122,7 @@ struct Cell {
 
 /// Typed error system matching the gemini evaluation spec.
 #[derive(Debug, Clone, PartialEq, Eq)]
-#[allow(dead_code)]
+#[expect(dead_code)]
 enum EvalError {
     SecuritySandboxBreach(String),
     CyclicDependencyDetected(NodeIx),
@@ -155,7 +155,7 @@ impl std::error::Error for EvalError {}
 
 /// User interaction profiles for adaptive UI behavior.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-#[allow(dead_code)]
+#[expect(dead_code)]
 enum UserProfile {
     DeepFocusArchitect,
     AdhdExplorer,
@@ -403,7 +403,7 @@ fn extract_definitions(code: &str) -> HashSet<String> {
             if let Some(rest) = trimmed.strip_prefix(prefix) {
                 if let Some((name, _)) = take_ident(rest) {
                     if !is_keyword_or_builtin(name) {
-                        defs.insert(name.to_string());
+                        defs.insert(name.to_owned());
                     }
                 }
             }
@@ -431,7 +431,7 @@ fn extract_references(code: &str, defined: &HashSet<String>) -> HashSet<String> 
                 && !defined.contains(word)
                 && !word.starts_with(|c: char| c.is_numeric())
             {
-                refs.insert(word.to_string());
+                refs.insert(word.to_owned());
             }
         }
     }
@@ -559,7 +559,7 @@ impl CellGraph {
             None => return,
         };
         if let Some(cell) = self.graph.node_weight_mut(node) {
-            cell.code = new_code.to_string();
+            cell.code = new_code.to_owned();
         }
         // Only rebuild symbols/edges for code cells.
         if self
@@ -613,7 +613,7 @@ impl CellGraph {
         // Add new symbols and edges
         for sym in &new_defs {
             self.symbol_table
-                .insert(sym.clone(), (node, "dynamic".to_string()));
+                .insert(sym.clone(), (node, "dynamic".to_owned()));
         }
         for ref_sym in &new_refs {
             if let Some(&(def_node, _)) = self.symbol_table.get(ref_sym) {
@@ -640,7 +640,7 @@ impl CellGraph {
         self.recompute_order();
     }
 
-    #[allow(dead_code)]
+    #[expect(dead_code)]
     fn mark_stale_cascade(&mut self, node: NodeIx) {
         let mut queue: VecDeque<NodeIx> = VecDeque::new();
         // Start from the dependents of the edited node, not the node itself.
@@ -675,7 +675,7 @@ impl CellGraph {
     }
 
     /// Check if the graph contains a cycle. Returns the node involved if found.
-    #[allow(dead_code)]
+    #[expect(dead_code)]
     fn has_cycle(&self) -> Option<NodeIx> {
         match toposort(&self.graph, None) {
             Ok(_) => None,
@@ -742,14 +742,14 @@ impl CellGraph {
                 } => {
                     if !result.stdout.is_empty() {
                         cell.output
-                            .push((OutputKind::Stdout, result.stdout.trim_end().to_string()));
+                            .push((OutputKind::Stdout, result.stdout.trim_end().to_owned()));
                     }
                     cell.output.push((OutputKind::Error, format!("Error: {e}")));
                 }
                 _ => {
                     if !result.stdout.is_empty() {
                         cell.output
-                            .push((OutputKind::Stdout, result.stdout.trim_end().to_string()));
+                            .push((OutputKind::Stdout, result.stdout.trim_end().to_owned()));
                     }
                     if !result.stderr.is_empty() {
                         cell.output.push((
@@ -768,7 +768,7 @@ impl CellGraph {
 
     /// Remove a symbol from the Rhai scope when its defining cell is deleted or changed.
     /// Callers must pass the mutable scope reference.
-    #[allow(dead_code)]
+    #[expect(dead_code)]
     fn remove_symbols_from_scope(&self, symbols: &HashSet<String>, scope: &mut Scope<'static>) {
         for sym in symbols {
             // Rhai Scope doesn't have a remove method, but we can check if it exists.
@@ -844,7 +844,7 @@ impl CellGraph {
                 let val = scope
                     .get_value::<Dynamic>(sym)
                     .map(|v| v.to_string())
-                    .unwrap_or_else(|| "(not in scope)".to_string());
+                    .unwrap_or_else(|| "(not in scope)".to_owned());
                 (
                     sym.clone(),
                     serde_json::json!({
@@ -883,7 +883,7 @@ impl CellGraph {
 // ReactiveNotebookEngine — unified API matching gemini spec
 // ═════════════════════════════════════════════════════════════════════════════
 
-#[allow(dead_code)]
+#[expect(dead_code)]
 struct ReactiveNotebookEngine {
     graph: CellGraph,
     sandbox: SecuritySandbox,
@@ -1044,7 +1044,7 @@ impl ContextEngine {
                 let di = graph
                     .display_idx_of(def_node)
                     .map(|d| d.to_string())
-                    .unwrap_or_else(|| "?".to_string());
+                    .unwrap_or_else(|| "?".to_owned());
                 let val_str = scope
                     .get_value::<Dynamic>(sym)
                     .map(|v| {
@@ -1055,7 +1055,7 @@ impl ContextEngine {
                             s
                         }
                     })
-                    .unwrap_or_else(|| "(not in scope)".to_string());
+                    .unwrap_or_else(|| "(not in scope)".to_owned());
                 md.push_str(&format!(
                     "| `{}` | Cell {} ({}) | {} |\n",
                     sym, di, type_hint, val_str
@@ -1100,8 +1100,8 @@ impl ContextEngine {
             let status = match (cell.exec_count, cell.stale) {
                 (Some(n), true) => format!("[exec #{}, STALE]", n),
                 (Some(n), false) => format!("[exec #{}]", n),
-                (None, true) => "[not executed, STALE]".to_string(),
-                (None, false) => "[not executed]".to_string(),
+                (None, true) => "[not executed, STALE]".to_owned(),
+                (None, false) => "[not executed]".to_owned(),
             };
             let deps: Vec<String> = graph
                 .dependencies_of(node)
@@ -1187,7 +1187,7 @@ impl IntentRouter {
         if lower.starts_with("define ") || lower.starts_with("let ") || lower.starts_with("const ")
         {
             return IntentAction::CreateCell {
-                code: trimmed.to_string(),
+                code: trimmed.to_owned(),
                 cell_type: CellType::Code,
                 after_display_idx: None,
             };
@@ -1240,7 +1240,7 @@ impl IntentRouter {
             let var = lower.strip_prefix("symbol ").unwrap_or("").trim();
             if !var.is_empty() {
                 return IntentAction::ShowSymbol {
-                    name: var.to_string(),
+                    name: var.to_owned(),
                 };
             }
         }
@@ -1250,7 +1250,7 @@ impl IntentRouter {
                 .or_else(|| trimmed.strip_prefix("markdown "))
                 .unwrap_or("");
             return IntentAction::CreateCell {
-                code: content.to_string(),
+                code: content.to_owned(),
                 cell_type: CellType::Markdown,
                 after_display_idx: None,
             };
@@ -1373,7 +1373,7 @@ fn execute_ai_command(
                     }
                     Err(e) => AiResponse {
                         status: "error".into(),
-                        message: Some(e.to_string()),
+                        message: Some(e.to_owned()),
                         state: None,
                     },
                 }
@@ -1443,13 +1443,13 @@ impl SecuritySandbox {
             max_operations: 100_000,
             max_string_size: 1_000_000,
             isolation_rules: vec![
-                "std::fs::write".to_string(),
-                "std::fs::read".to_string(),
-                "/etc/passwd".to_string(),
-                "process::exit".to_string(),
-                "std::process".to_string(),
-                "std::net".to_string(),
-                "std::os".to_string(),
+                "std::fs::write".to_owned(),
+                "std::fs::read".to_owned(),
+                "/etc/passwd".to_owned(),
+                "process::exit".to_owned(),
+                "std::process".to_owned(),
+                "std::net".to_owned(),
+                "std::os".to_owned(),
             ],
         }
     }
@@ -2945,7 +2945,7 @@ fn render_cell(
                         Span::raw(after),
                     ])
                 } else {
-                    Line::from(line.to_string())
+                    Line::from(line.to_owned())
                 }
             })
             .collect();
@@ -2958,22 +2958,22 @@ fn render_cell(
             .map(|line| {
                 if line.starts_with("# ") {
                     Line::styled(
-                        line.to_string(),
+                        line.to_owned(),
                         Style::default()
                             .fg(Color::Green)
                             .add_modifier(Modifier::BOLD),
                     )
                 } else if line.starts_with("## ") {
-                    Line::styled(line.to_string(), Style::default().fg(Color::Green))
+                    Line::styled(line.to_owned(), Style::default().fg(Color::Green))
                 } else if line.starts_with("- ") || line.starts_with("* ") {
                     Line::styled(
                         format!("  • {}", &line[2..]),
                         Style::default().fg(Color::White),
                     )
                 } else if line.starts_with("> ") {
-                    Line::styled(line.to_string(), Style::default().fg(Color::Gray))
+                    Line::styled(line.to_owned(), Style::default().fg(Color::Gray))
                 } else {
-                    Line::raw(line.to_string())
+                    Line::raw(line.to_owned())
                 }
             })
             .collect();
@@ -3138,7 +3138,7 @@ fn render_ai_prompt(f: &mut Frame, app: &App, area: Rect) {
                     Span::raw(after),
                 ])
             } else {
-                Line::from(line.to_string())
+                Line::from(line.to_owned())
             }
         })
         .collect();
@@ -3228,10 +3228,10 @@ fn render_status(f: &mut Frame, app: &App, area: Rect) {
 // MatrixEvalSuite — structured test runner matching gemini spec
 // ═════════════════════════════════════════════════════════════════════════════
 
-#[allow(dead_code)]
+#[expect(dead_code)]
 struct MatrixEvalSuite;
 
-#[allow(dead_code)]
+#[expect(dead_code)]
 impl MatrixEvalSuite {
     /// Run the full evaluation matrix against a ReactiveNotebookEngine.
     fn run_all(
@@ -3264,7 +3264,7 @@ impl MatrixEvalSuite {
         engine.restart_kernel();
         for i in 0..150 {
             let code = if i == 0 {
-                "let var_0 = 10;".to_string()
+                "let var_0 = 10;".to_owned()
             } else {
                 format!("let var_{i} = var_{} + 1;", i - 1)
             };
