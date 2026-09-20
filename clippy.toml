@@ -1,0 +1,13 @@
+# [lgwks anti-pattern contract]
+disallowed-methods = [
+  { path = "tokio::sync::mpsc::unbounded_channel", reason = "unbounded memory growth; use a bounded channel" },
+  { path = "std::sync::mpsc::channel", reason = "std::mpsc has no bounded form and no async receiver" },
+  { path = "tokio::spawn", reason = "untracked background task; spawn inside a tracked scope" },
+  { path = "std::thread::spawn", reason = "unjoined OS thread; a panic is invisible and the handle leaks" },
+  { path = "std::mem::uninitialized", reason = "instant UB for most types; use MaybeUninit", replacement = "std::mem::MaybeUninit" },
+  { path = "std::mem::zeroed", reason = "UB where all-zero is invalid (references, NonZero, enums)" },
+  { path = "std::mem::forget", reason = "leaks the value and any Drop-based cleanup" },
+  { path = "std::rc::Rc::new_cyclic", reason = "Rc cycles leak; use Weak back-pointers" },
+  { path = "std::vec::Vec::remove", reason = "O(n) shift; use VecDeque for queue semantics" },
+  { path = "std::thread::sleep", reason = "blocks the executor thread in async context" },
+]

@@ -1,0 +1,3 @@
+# [lgwks anti-pattern contract]
+[build]
+rustc-workspace-wrapper = "clippy-driver"
